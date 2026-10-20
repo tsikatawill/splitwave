@@ -1,0 +1,7 @@
+.build/
+build/
+dist/
+.swiftpm/
+.claude/
+Extension/
+.DS_Store
