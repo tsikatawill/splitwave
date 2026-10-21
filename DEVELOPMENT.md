@@ -35,6 +35,23 @@ it, so the CLI relaunches itself with responsibility disclaimed and macOS asks o
 `docs/popover-dark.png`) from made-up apps and devices. `swift scripts/make-icon.swift` redraws the
 app icon and `docs/icon.png`.
 
+### Demo video
+
+`docs/demo.mp4` is drawn by code, not recorded. `video/demo.html` lays out every frame of the
+31-second story from a timestamp (open it with `?play` to watch it in a browser), and
+`video/render.swift` renders the frames in an offscreen WebKit view, synthesizes the soundtrack and
+encodes the MP4 with ffmpeg:
+
+```sh
+swiftc -O video/render.swift -o .build/render-demo
+.build/render-demo                       # → docs/demo.mp4 (about 2 minutes)
+.build/render-demo --frames 2,8.5,19.6   # stills of those moments in .build/demo-frames/
+ffmpeg -y -i .build/demo-poster.png -q:v 3 docs/demo-poster.jpg
+```
+
+It uses the Music, Chrome and VLC icons installed on the Mac that renders it (exported to the
+untracked `video/assets/`).
+
 ## Releasing
 
 ```sh

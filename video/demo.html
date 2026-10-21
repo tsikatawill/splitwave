@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Splitwave demo</title>
+<!--
+  The Splitwave demo video, drawn from a timestamp: render(t) puts every element where it is at
+  t seconds, so video/render.swift can capture any frame exactly. Open in a browser and add
+  ?play to watch it in real time.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; }
+  body {
+    background: radial-gradient(900px 700px at 78% 30%, rgba(124, 112, 236, 0.28), transparent 70%),
+                radial-gradient(800px 600px at 10% 95%, rgba(60, 197, 166, 0.10), transparent 70%), #100e22;
+    color: #f4f3fb; font-family: -apple-system, "SF Pro Text", "Helvetica Neue", sans-serif;
+    -webkit-font-smoothing: antialiased; position: relative;
+  }
+
+  .menubar {
+    position: absolute; inset: 0 0 auto 0; height: 46px; display: flex; align-items: center; gap: 30px;
+    padding: 0 30px; background: rgba(28, 26, 50, 0.72); border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    font-size: 21px; color: #eceaf8;
+  }
+  .menubar b { font-weight: 700; }
+  .menubar .right { margin-left: auto; display: flex; align-items: center; gap: 26px; }
+  #tray { width: 40px; height: 34px; border-radius: 8px; display: grid; place-items: center; }
+  #tray.on { background: rgba(255, 255, 255, 0.16); }
+
+  .caption {
+    position: absolute; left: 110px; top: 150px; width: 1050px;
+    font: 800 86px/1.0 "Bricolage Grotesque", sans-serif; letter-spacing: -0.035em; opacity: 0;
+  }
+
+  /* Patch bay */
+  #bay { position: absolute; left: 110px; top: 470px; width: 1100px; height: 560px; overflow: visible; }
+  #bay text { fill: #eceaf8; font: 600 25px -apple-system, sans-serif; }
+  #bay .small { font: 400 17px -apple-system, sans-serif; fill: #9d99c2; }
+  #bay .chip { fill: #1d1a38; stroke: #2e2a56; stroke-width: 1.5; }
+
+  /* Popover (dark, like the app) */
+  #popover {
+    position: absolute; right: 70px; top: 58px; width: 600px; border-radius: 20px;
+    background: rgba(40, 38, 56, 0.97); border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 40px 90px rgba(0, 0, 0, 0.55); transform-origin: 85% 0; opacity: 0;
+  }
+  .p-head { display: flex; justify-content: space-between; align-items: center; padding: 20px 26px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+  .p-head b { font-size: 23px; }
+  .p-head span { color: #a19fb5; font-size: 18px; }
+  .row { padding: 20px 26px 18px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+  .row .top { display: flex; align-items: center; gap: 14px; }
+  .row img { width: 46px; height: 46px; }
+  .row .name { font-size: 22px; font-weight: 500; flex: 1; }
+  .out {
+    display: inline-flex; align-items: center; gap: 10px; padding: 7px 14px; border-radius: 10px;
+    background: rgba(255, 255, 255, 0.10); font-size: 19px; max-width: 290px; white-space: nowrap;
+  }
+  .out.press { background: rgba(255, 255, 255, 0.2); }
+  .vol { display: flex; align-items: center; gap: 14px; margin: 14px 0 0 60px; }
+  .spk { width: 22px; height: 22px; color: #a19fb5; }
+  .spk.muted { color: #ee7fa4; }
+  .track { position: relative; flex: 1; height: 26px; }
+  .track i { position: absolute; left: 0; top: 10px; height: 6px; border-radius: 3px; }
+  .track .rail { right: 0; background: rgba(255,255,255,0.12); }
+  .track .vf { background: rgba(140, 131, 236, 0.4); }
+  .track .lv { background: #8c83ec; }
+  .knob { position: absolute; top: 1px; width: 24px; height: 24px; margin-left: -12px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.5); }
+  .pct { width: 58px; text-align: right; color: #a19fb5; font-size: 18px; font-variant-numeric: tabular-nums; }
+  .p-foot { display: flex; align-items: center; gap: 14px; padding: 16px 26px; }
+  .p-foot .btn { padding: 7px 16px; border-radius: 10px; background: rgba(255,255,255,0.10); font-size: 19px; }
+  .p-foot .btn.press { background: rgba(255, 255, 255, 0.2); }
+  .p-foot .more { margin-left: auto; color: #a19fb5; font-size: 24px; }
+
+  /* Menus */
+  .menu {
+    position: absolute; min-width: 270px; padding: 7px; border-radius: 13px; z-index: 5;
+    background: rgba(50, 48, 68, 0.98); border: 1px solid rgba(255,255,255,0.14);
+    box-shadow: 0 24px 50px rgba(0,0,0,0.5); font-size: 19px; visibility: hidden;
+  }
+  .menu .it { display: flex; align-items: center; gap: 8px; padding: 7px 14px 7px 8px; border-radius: 7px; white-space: nowrap; }
+  .menu .it .ck { width: 22px; text-align: center; }
+  .menu .it .arrow { margin-left: auto; padding-left: 24px; color: #a19fb5; }
+  .menu .it.hover { background: #6a60d6; }
+  .menu .it.hover .arrow { color: #fff; }
+  .menu hr { border: 0; border-top: 1px solid rgba(255,255,255,0.12); margin: 6px 4px; }
+
+  #cursor { position: absolute; left: 0; top: 0; width: 34px; height: 46px; z-index: 10; transform-origin: 3px 3px; }
+  #ripple { position: absolute; z-index: 9; width: 80px; height: 80px; margin: -40px 0 0 -40px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.8); opacity: 0; }
+
+  #end { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; text-align: center; opacity: 0; }
+  #end img { width: 190px; height: 190px; }
+  #end h1 { font: 800 140px/1 "Bricolage Grotesque", sans-serif; letter-spacing: -0.045em; margin: 18px 0 14px; }
+  #end p { margin: 0; font-size: 36px; color: #b9b5d9; }
+  #end .pill { margin-top: 44px; padding: 16px 34px; border-radius: 999px; background: #eceaf8; color: #16132c; font: 700 32px -apple-system, sans-serif; }
+  #end .url { margin-top: 20px; font-size: 26px; color: #9d99c2; }
+  #scene { position: absolute; inset: 0; }
+</style>
+</head>
+<body>
+<div id="scene">
+  <div class="menubar">
+    <b>Music</b><span>File</span><span>Edit</span><span>Song</span><span>View</span><span>Window</span>
+    <div class="right">
+      <div id="tray"><svg width="24" height="22" viewBox="0 0 18 16"><g fill="#eceaf8"><rect x="1" y="5.5" width="2" height="5" rx="1"/><rect x="4.5" y="2.5" width="2" height="11" rx="1"/><rect x="8" y="4.5" width="2" height="7" rx="1"/><rect x="11.5" y="1" width="2" height="14" rx="1" opacity=".75"/><rect x="15" y="4" width="2" height="8" rx="1" opacity=".75"/></g></svg></div>
+      <svg width="24" height="18" viewBox="0 0 17 13"><path d="M8.5 12.2 10.6 10a3 3 0 0 0-4.2 0Zm-4-4 1.3 1.3a3.8 3.8 0 0 1 5.4 0l1.3-1.3a5.7 5.7 0 0 0-8 0Zm-2.7-2.7 1.3 1.3a7.6 7.6 0 0 1 10.8 0l1.3-1.3a9.5 9.5 0 0 0-13.4 0Z" fill="#eceaf8"/></svg>
+      <svg width="36" height="17" viewBox="0 0 25 12"><rect x="0.5" y="0.5" width="21" height="11" rx="3" fill="none" stroke="#eceaf8" opacity=".5"/><rect x="2" y="2" width="15" height="8" rx="1.8" fill="#eceaf8"/><path d="M23 4v4a2 2 0 0 0 0-4Z" fill="#eceaf8" opacity=".5"/></svg>
+      <span>Tue 21 Oct 9:41</span>
+    </div>
+  </div>
+
+  <div class="caption" id="c0">Your Mac plays everything on one speaker.</div>
+  <div class="caption" id="c1">Splitwave gives every app its own.</div>
+  <div class="caption" id="c2">Music, now in your AirPods.</div>
+  <div class="caption" id="c3">Turn one app down. Not everything.</div>
+  <div class="caption" id="c4">Or play one app on two outputs.</div>
+  <div class="caption" id="c5">Save a setup. Switch in one click.</div>
+
+  <svg id="bay" viewBox="0 0 1100 560">
+    <g id="cables"></g>
+    <g id="apps"></g>
+    <g id="devs"></g>
+  </svg>
+
+  <div id="popover">
+    <div class="p-head"><b>Splitwave</b><span id="setup-label"></span></div>
+    <div class="row" id="row-music"></div>
+    <div class="row" id="row-chrome"></div>
+    <div class="row" id="row-vlc"></div>
+    <div class="p-foot"><span class="btn" id="setups">Setups ⌄</span><span class="btn">Reset all</span><span class="more">⋯</span></div>
+  </div>
+
+  <div class="menu" id="menu-out"></div>
+  <div class="menu" id="submenu"></div>
+  <div class="menu" id="menu-setups"></div>
+</div>
+
+<div id="end">
+  <img src="../docs/icon.png" alt="">
+  <h1>Splitwave</h1>
+  <p>Each app, its own speaker.</p>
+  <div class="pill">Free for Mac</div>
+  <div class="url">tsikatawill.github.io/splitwave</div>
+</div>
+
+<div id="ripple"></div>
+<svg id="cursor" viewBox="0 0 24 32"><path d="M2 2 L2 25 L8 19.5 L12 29 L16 27.3 L12 18 L20 18 Z" fill="#111" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>
+
+<script>
+const DURATION = 31;
+const CLICKS = [4.7, 7.9, 8.8, 12.4, 17.3, 18.0, 18.5, 19.7, 22.7, 23.3, 24.6, 25.1];
+window.DEMO = { duration: DURATION, fps: 30, width: 1920, height: 1080, clicks: CLICKS };
+
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const ease = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const lerp = (a, b, x) => a + (b - a) * x;
+const $ = (s) => document.querySelector(s);
+const SVG = 'http://www.w3.org/2000/svg';
+const svg = (tag, attrs, parent) => { const n = document.createElementNS(SVG, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); parent && parent.appendChild(n); return n; };
+
+const APPS = [
+  { id: 'music', name: 'Music', icon: 'assets/music.png', color: '#ee7fa4', y: 80 },
+  { id: 'chrome', name: 'Google Chrome', icon: 'assets/chrome.png', color: '#6aa8ff', y: 280 },
+  { id: 'vlc', name: 'VLC', icon: 'assets/vlc.png', color: '#f0a050', y: 480 },
+];
+const DEVS = [
+  { id: 'airpods', name: 'AirPods Pro', kind: 'Bluetooth', y: 50 },
+  { id: 'mac', name: 'Mac speakers', kind: 'Built-in', y: 190 },
+  { id: 'tv', name: 'Living room TV', kind: 'AirPlay', y: 330 },
+  { id: 'bt', name: 'Bluetooth speaker', kind: 'Bluetooth', y: 470 },
+];
+const NAMES = Object.fromEntries(DEVS.map((d) => [d.id, d.name]));
+
+// The story, as states that take effect at each click.
+const STATES = [
+  { t: 0, setup: '', music: { out: [], vol: 1 }, chrome: { out: [], vol: 1 }, vlc: { out: [], vol: 1 } },
+  { t: 8.8, setup: '', music: { out: ['airpods'], vol: 1 }, chrome: { out: [], vol: 1 }, vlc: { out: [], vol: 1 } },
+  { t: 18.0, setup: '', music: { out: ['airpods'], vol: 1 }, chrome: { out: [], vol: 0.3 }, vlc: { out: ['tv'], vol: 1 } },
+  { t: 19.7, setup: '', music: { out: ['airpods'], vol: 1 }, chrome: { out: [], vol: 0.3 }, vlc: { out: ['tv', 'bt'], vol: 1 } },
+  { t: 23.3, setup: 'Desk', music: { out: ['airpods'], vol: 0.8 }, chrome: { out: [], vol: 0.3 }, vlc: { out: [], vol: 1 } },
+  { t: 25.1, setup: 'Movie night', music: { out: ['airpods'], vol: 0.8, muted: true }, chrome: { out: [], vol: 0.3 }, vlc: { out: ['tv', 'bt'], vol: 1 } },
+];
+function stateAt(t) {
+  let s = STATES[0];
+  for (const x of STATES) if (t >= x.t) s = x;
+  s = JSON.parse(JSON.stringify(s));
+  // Chrome's slider is dragged from 100% to 30% between 12.4 and 13.8 s.
+  if (t < 18.0) s.chrome.vol = lerp(1, 0.3, ease(prog(t, 12.4, 13.8)));
+  return s;
+}
+const devicesOf = (o) => (o.out.length ? o.out : ['mac']);  // system default = the Mac speakers
+const label = (o) => (o.out.length === 0 ? 'System default' : o.out.length === 1 ? NAMES[o.out[0]] : `${NAMES[o.out[0]]} +${o.out.length - 1}`);
+
+// When each app→device cable exists, from the state changes.
+const CABLES = [];
+for (const a of APPS) for (const d of DEVS) {
+  let start = null;
+  STATES.forEach((s, i) => {
+    const on = devicesOf(s[a.id]).includes(d.id);
+    if (on && start === null) start = s.t;
+    if (!on && start !== null) { CABLES.push({ app: a, dev: d, start, end: s.t }); start = null; }
+    if (i === STATES.length - 1 && start !== null) CABLES.push({ app: a, dev: d, start, end: Infinity });
+  });
+}
+
+// Build the patch bay.
+const AX = 290, DX = 760;
+const gC = $('#cables'), gA = $('#apps'), gD = $('#devs');
+const meters = {}, devChips = {};
+for (const a of APPS) {
+  svg('rect', { class: 'chip', x: 0, y: a.y - 42, width: AX, height: 84, rx: 42 }, gA);
+  svg('image', { href: a.icon, x: 18, y: a.y - 26, width: 52, height: 52 }, gA);
+  svg('text', { x: 84, y: a.y + 2 }, gA).textContent = a.name === 'Google Chrome' ? 'Chrome' : a.name;
+  svg('rect', { x: 84, y: a.y + 14, width: 170, height: 5, rx: 2.5, fill: 'rgba(236,234,248,.12)' }, gA);
+  meters[a.id] = svg('rect', { x: 84, y: a.y + 14, width: 0, height: 5, rx: 2.5, fill: a.color }, gA);
+}
+for (const d of DEVS) {
+  const g = svg('g', {}, gD);
+  devChips[d.id] = { g, rect: svg('rect', { class: 'chip', x: DX, y: d.y - 40, width: 340, height: 80, rx: 18 }, g) };
+  svg('text', { x: DX + 26, y: d.y + 2 }, g).textContent = d.name;
+  svg('text', { class: 'small', x: DX + 26, y: d.y + 26 }, g).textContent = d.kind;
+}
+for (const c of CABLES) {
+  const d = `M${AX} ${c.app.y} C ${AX + 220} ${c.app.y}, ${DX - 220} ${c.dev.y}, ${DX} ${c.dev.y}`;
+  c.path = svg('path', { d, fill: 'none', stroke: c.app.color, 'stroke-width': 5, 'stroke-linecap': 'round' }, gC);
+  c.flow = svg('path', { d, fill: 'none', stroke: '#100e22', 'stroke-width': 5, 'stroke-linecap': 'round', 'stroke-dasharray': '3 26' }, gC);
+  c.len = c.path.getTotalLength();
+  c.path.style.strokeDasharray = c.len;
+}
+
+// Popover rows.
+const SPK = '<svg class="spk" viewBox="0 0 24 24"><path fill="currentColor" d="M4 9v6h4l5 4V5L8 9H4z"/></svg>';
+const SPK_MUTED = '<svg class="spk muted" viewBox="0 0 24 24"><path fill="currentColor" d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 9l6 6m0-6-6 6" stroke="currentColor" stroke-width="2"/></svg>';
+const rows = {};
+for (const a of APPS) {
+  const el = $(`#row-${a.id}`);
+  el.innerHTML = `<div class="top"><img src="${a.icon}" alt=""><span class="name">${a.name}</span><span class="out"><span class="lbl"></span><span>⌄</span></span></div>
+    <div class="vol"><span class="spkw"></span><div class="track"><i class="rail"></i><i class="vf"></i><i class="lv"></i><span class="knob"></span></div><span class="pct"></span></div>`;
+  rows[a.id] = { el, lbl: el.querySelector('.lbl'), out: el.querySelector('.out'), vf: el.querySelector('.vf'), lv: el.querySelector('.lv'),
+    knob: el.querySelector('.knob'), pct: el.querySelector('.pct'), spk: el.querySelector('.spkw') };
+}
+
+// Menus: what's open when, and anchored where.
+const OPEN = [
+  { menu: 'out', app: 'music', from: 7.9, to: 8.8 },
+  { menu: 'out', app: 'vlc', from: 17.3, to: 18.0 },
+  { menu: 'out', app: 'vlc', from: 18.5, to: 19.7 },
+  { menu: 'sub', app: 'vlc', from: 19.0, to: 19.7 },
+  { menu: 'setups', from: 22.7, to: 23.3 },
+  { menu: 'setups', from: 24.6, to: 25.1 },
+];
+function fillOutMenu(s, appId) {
+  const cur = s[appId].out;
+  const item = (id, text, checked, extra = '') => `<div class="it" data-i="${id}"><span class="ck">${checked ? '✓' : ''}</span>${text}${extra}</div>`;
+  $('#menu-out').innerHTML = item('default', 'System default', cur.length === 0) + '<hr>' +
+    DEVS.map((d) => item(d.id, d.name, cur.length === 1 && cur[0] === d.id)).join('') + '<hr>' +
+    item('also', 'Also play on', false, '<span class="arrow">›</span>');
+  $('#submenu').innerHTML = DEVS.map((d) => item(d.id, d.name, cur.includes(d.id))).join('');
+}
+$('#menu-setups').innerHTML = `<div class="it" data-i="desk"><span class="ck"></span>Desk</div><div class="it" data-i="movie"><span class="ck"></span>Movie night</div><hr><div class="it"><span class="ck"></span>Save current as…</div>`;
+
+// Cursor path: [time, target] where a target is a selector (centre of that element) or [x, y].
+const CURSOR = [
+  [0, [1540, 820]], [3.6, [1540, 820]], [4.55, '#tray'], [7.0, '#tray'],
+  [7.75, '#row-music .out'], [8.05, '#row-music .out'], [8.6, '#menu-out [data-i=airpods]'], [8.8, null],
+  [11.5, null], [12.3, '#row-chrome .knob'], [12.4, '#row-chrome .knob'], [13.8, '#row-chrome .knob'], [13.95, '#row-chrome .knob'],
+  [16.5, null], [17.15, '#row-vlc .out'], [17.35, '#row-vlc .out'], [17.85, '#menu-out [data-i=tv]'], [18.0, null],
+  [18.3, '#row-vlc .out'], [18.5, '#row-vlc .out'], [18.9, '#menu-out [data-i=also]'], [19.05, null], [19.5, '#submenu [data-i=bt]'], [19.7, null],
+  [22.0, null], [22.55, '#setups'], [22.75, '#setups'], [23.15, '#menu-setups [data-i=desk]'], [23.3, null],
+  [24.35, '#setups'], [24.6, '#setups'], [24.95, '#menu-setups [data-i=movie]'], [25.1, null], [27.0, null], [27.8, [1500, 1150]],
+];
+function centre(sel) {
+  const r = $(sel).getBoundingClientRect();
+  return [r.left + r.width / 2, r.top + r.height / 2];
+}
+
+function render(t) {
+  const s = stateAt(t);
+
+  // Captions.
+  const CAP = [0.2, 3.6, 7.0, 11.5, 16.5, 22.0, 27.0];
+  for (let i = 0; i < 6; i++) {
+    const inn = ease(prog(t, CAP[i], CAP[i] + 0.45)), out = prog(t, CAP[i + 1] - 0.3, CAP[i + 1]);
+    const el = $(`#c${i}`);
+    el.style.opacity = inn * (1 - out);
+    el.style.transform = `translateY(${(1 - inn) * 24}px)`;
+  }
+
+  // Popover and its rows.
+  const pop = ease(prog(t, 4.72, 5.0));
+  $('#popover').style.opacity = pop;
+  $('#popover').style.transform = `scale(${0.96 + 0.04 * pop}) translateY(${(1 - pop) * -8}px)`;
+  $('#tray').classList.toggle('on', t >= 4.7);
+  $('#setup-label').textContent = s.setup;
+  for (const a of APPS) {
+    const o = s[a.id], r = rows[a.id];
+    r.lbl.textContent = label(o);
+    const level = o.muted ? 0 : wobble(t, a.y) * o.vol;
+    r.vf.style.width = `${o.vol * 100}%`;
+    r.lv.style.width = `${level * 100}%`;
+    r.knob.style.left = `${o.vol * 100}%`;
+    r.pct.textContent = `${Math.round(o.vol * 100)}%`;
+    r.spk.innerHTML = o.muted ? SPK_MUTED : SPK;
+    r.out.classList.toggle('press', OPEN.some((m) => m.menu === 'out' && m.app === a.id && t >= m.from && t < m.to));
+  }
+  $('#setups').classList.toggle('press', OPEN.some((m) => m.menu === 'setups' && t >= m.from && t < m.to));
+
+  // Menus.
+  const openOut = OPEN.find((m) => m.menu === 'out' && t >= m.from && t < m.to);
+  const openSub = OPEN.find((m) => m.menu === 'sub' && t >= m.from && t < m.to);
+  const openSetups = OPEN.find((m) => m.menu === 'setups' && t >= m.from && t < m.to);
+  const lastOut = [...OPEN].reverse().find((m) => m.menu === 'out' && t >= m.from) || OPEN[0];
+  fillOutMenu(s, lastOut.app);
+  const btn = rows[lastOut.app].out.getBoundingClientRect();
+  const mo = $('#menu-out');
+  mo.style.left = `${btn.right - 300}px`; mo.style.top = `${btn.bottom + 6}px`;
+  mo.style.visibility = openOut ? 'visible' : 'hidden';
+  const also = mo.querySelector('[data-i=also]').getBoundingClientRect();
+  const sub = $('#submenu');
+  sub.style.left = `${also.left - 290}px`; sub.style.top = `${also.top - 8}px`;
+  sub.style.visibility = openSub ? 'visible' : 'hidden';
+  const sb = $('#setups').getBoundingClientRect(), ms = $('#menu-setups');
+  ms.style.left = `${sb.left}px`; ms.style.top = `${sb.top - ms.offsetHeight - 6}px`;
+  ms.querySelector('[data-i=desk] .ck').textContent = s.setup === 'Desk' ? '✓' : '';
+  ms.querySelector('[data-i=movie] .ck').textContent = s.setup === 'Movie night' ? '✓' : '';
+  ms.style.visibility = openSetups ? 'visible' : 'hidden';
+
+  // Patch bay.
+  for (const c of CABLES) {
+    if (t < c.start) { c.path.style.opacity = 0; c.flow.style.opacity = 0; continue; }
+    const draw = c.start === 0 ? 1 : ease(prog(t, c.start, c.start + 0.75));
+    const gone = c.end === Infinity ? 0 : prog(t, c.end, c.end + 0.45);
+    const o = s[c.app.id];
+    const strength = (o.muted && t >= 25.1 ? 0.18 : 0.35 + 0.65 * o.vol) * (1 - gone);
+    c.path.style.strokeDashoffset = c.len * (1 - draw);
+    c.path.style.opacity = strength;
+    c.flow.style.opacity = draw >= 1 && gone === 0 ? 1 : 0;
+    c.flow.style.strokeDashoffset = -t * 70;
+  }
+  for (const d of DEVS) {
+    const live = CABLES.filter((c) => c.dev === d && t >= c.start && t < c.end);
+    const arrival = Math.max(0, ...CABLES.filter((c) => c.dev === d && c.start > 0 && t >= c.start).map((c) => 1 - prog(t, c.start + 0.6, c.start + 1.6)));
+    devChips[d.id].g.style.opacity = live.length ? 1 : 0.4;
+    devChips[d.id].rect.style.stroke = arrival > 0 ? `rgba(236,234,248,${0.25 + 0.6 * arrival})` : '#2e2a56';
+  }
+  for (const a of APPS) {
+    const o = s[a.id];
+    meters[a.id].setAttribute('width', (170 * (o.muted ? 0 : wobble(t, a.y) * o.vol)).toFixed(1));
+  }
+
+  // Cursor and click ripples.
+  let [x, y] = [0, 0], prev = null;
+  for (let i = 0; i < CURSOR.length; i++) {
+    const [tk, target] = CURSOR[i];
+    const pos = target === null ? prev : typeof target === 'string' ? centre(target) : target;
+    if (t >= tk) { [x, y] = pos; prev = pos; continue; }
+    const [tp] = CURSOR[i - 1];
+    const k = ease(prog(t, tp, tk));
+    [x, y] = [lerp(prev[0], pos[0], k), lerp(prev[1], pos[1], k)];
+    break;
+  }
+  const lastClick = Math.max(-9, ...CLICKS.filter((c) => c <= t));
+  const since = t - lastClick;
+  const press = since < 0.12 || (t >= 12.4 && t < 13.95);
+  const cur = $('#cursor');
+  cur.style.transform = `translate(${x - 3}px, ${y - 3}px) scale(${press ? 0.88 : 1})`;
+  cur.style.opacity = 1 - prog(t, 27.0, 27.6);
+  const rip = $('#ripple');
+  rip.style.left = `${x}px`; rip.style.top = `${y}px`;
+  rip.style.opacity = since < 0.45 ? 0.7 * (1 - since / 0.45) : 0;
+  rip.style.transform = `scale(${0.3 + since * 1.6})`;
+
+  // Hover highlight follows the cursor inside open menus.
+  document.querySelectorAll('.menu .it').forEach((it) => {
+    const r = it.getBoundingClientRect();
+    it.classList.toggle('hover', it.closest('.menu').style.visibility === 'visible' && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom);
+  });
+
+  // End card.
+  const end = ease(prog(t, 27.0, 27.7));
+  $('#scene').style.opacity = 1 - end;
+  $('#end').style.opacity = end;
+  $('#end').style.transform = `scale(${0.97 + 0.03 * end})`;
+}
+
+// A lively, repeatable stand-in for audio levels.
+function wobble(t, seed) {
+  return clamp(0.55 + 0.22 * Math.sin(t * 9.1 + seed) + 0.15 * Math.sin(t * 23.7 + seed * 2) + 0.08 * Math.sin(t * 3.3 + seed));
+}
+
+window.ready = Promise.all([document.fonts.ready, ...[...document.images].map((im) => im.decode().catch(() => {}))]);
+render(0);
+if (location.search.includes('play')) {
+  const t0 = performance.now();
+  (function loop() { render(((performance.now() - t0) / 1000) % DURATION); requestAnimationFrame(loop); })();
+}
+</script>
+</body>
+</html>

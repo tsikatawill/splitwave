@@ -140,6 +140,8 @@
   .intro { color: var(--muted); max-width: 30em; margin: 0; font-size: 1.125rem; }
   h3 { font: 700 1.3rem/1.2 var(--display); margin: 0 0 8px; letter-spacing: -0.01em; }
 
+  video.demo { display: block; width: 100%; height: auto; border-radius: 24px; background: var(--stage); box-shadow: 0 40px 80px -40px rgba(20, 16, 60, 0.6); }
+
   /* Try it: a playable mixer */
   .mixer { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; align-items: stretch; }
   .panel { background: var(--raised); border: 1px solid var(--line); border-radius: 22px; padding: 26px; }
@@ -268,6 +270,7 @@
 <div class="menubar">
   <div class="wrap">
     <a class="item app" href="#top"><img src="icon.png" alt="" width="18" height="18">Splitwave</a>
+    <a class="item" href="#watch">Watch</a>
     <a class="item" href="#try">Try it</a>
     <a class="item" href="#features">Features</a>
     <a class="item" href="#install">Install</a>
@@ -320,6 +323,19 @@
       <p class="caption" id="caption" aria-live="polite"></p>
     </div>
   </div>
+
+  <section id="watch">
+    <div class="wrap">
+      <div class="kicker-row">
+        <h2>See it in 30 seconds.</h2>
+        <p class="intro">Music to the AirPods, the browser turned down, a film on two outputs, and a whole setup switched in one click.</p>
+      </div>
+      <video class="demo" controls playsinline preload="none" poster="demo-poster.jpg" width="1920" height="1080">
+        <source src="demo.mp4" type="video/mp4">
+        <a href="demo.mp4">Watch the demo video</a>
+      </video>
+    </div>
+  </section>
 
   <section id="try">
     <div class="wrap">

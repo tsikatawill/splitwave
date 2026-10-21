@@ -9,7 +9,9 @@ its own volume.
 **[Download Splitwave](https://github.com/tsikatawill/splitwave/releases/latest/download/Splitwave.dmg)**
 · [Website](https://tsikatawill.github.io/splitwave/) · macOS 14.2 or later, Apple silicon and Intel
 
-<p align="center"><img src="docs/popover-light.png" width="360" alt="The Splitwave menu with Music on AirPods Pro, VLC on a TV and a speaker, and Chrome turned down to 30%"></p>
+<a href="https://tsikatawill.github.io/splitwave/demo.mp4"><img src="docs/demo-poster.jpg" alt="Watch the 30-second demo: Music moves to AirPods, Chrome is turned down, VLC plays on a TV and a speaker at once"></a>
+
+▶ [Watch the 30-second demo](https://tsikatawill.github.io/splitwave/demo.mp4)
 
 ## Features
 
