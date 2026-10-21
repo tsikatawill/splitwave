@@ -87,7 +87,8 @@
   @media (max-width: 720px) { .menubar a.item:not(.app) { display: none; } .menubar .hide-sm { display: none; } }
 
   /* Hero */
-  .hero { padding: 72px 0 40px; }
+  /* Top and bottom only: .hero shares its element with .wrap, which owns the side padding. */
+  .hero { padding-top: 72px; padding-bottom: 40px; }
   h1 { font: 800 clamp(3rem, 8.4vw, 6.75rem)/0.92 var(--display); letter-spacing: -0.045em; margin: 0 0 26px; max-width: 11ch; }
   .lede { font-size: clamp(1.125rem, 2vw, 1.375rem); line-height: 1.5; color: var(--muted); max-width: 33em; margin: 0 0 34px; }
   .cta { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 20px; }
