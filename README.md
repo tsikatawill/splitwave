@@ -7,11 +7,11 @@ on your AirPods, the movie on the TV, a call on the speakers, all at once. It al
 its own volume.
 
 **[Download Splitwave](https://github.com/tsikatawill/splitwave/releases/latest/download/Splitwave.dmg)**
-· [Website](https://tsikatawill.github.io/splitwave/) · macOS 14.2 or later, Apple silicon and Intel
+· [Website](https://splitwave.williamtsikata.com/) · macOS 14.2 or later, Apple silicon and Intel
 
-<a href="https://tsikatawill.github.io/splitwave/demo.mp4"><img src="docs/demo-poster.jpg" alt="Watch the 30-second demo: Music moves to AirPods, Chrome is turned down, VLC plays on a TV and a speaker at once"></a>
+<a href="https://splitwave.williamtsikata.com/demo.mp4"><img src="docs/demo-poster.jpg" alt="Watch the 30-second demo: Music moves to AirPods, Chrome is turned down, VLC plays on a TV and a speaker at once"></a>
 
-▶ [Watch the 30-second demo](https://tsikatawill.github.io/splitwave/demo.mp4)
+▶ [Watch the 30-second demo](https://splitwave.williamtsikata.com/demo.mp4)
 
 ## Features
 
